@@ -1,0 +1,361 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Elmina Loop</title><meta name="description" content="Elmina Loop: AI-powered circular food platform demo"><link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
+<meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<style>
+/* Layout: one app shell, role switcher on top; each role is a working view over one shared demo state */
+:root{
+  --bg:#F2F5F1; --surface:#FFFFFF; --sunk:#E8EEE8; --ink:#15231C; --muted:#5A6A61; --line:#D6DFD8;
+  --leaf:#1E7752; --leaf-soft:#DCEFE4; --sun:#B77F00; --sun-soft:#FBF0D2; --warn:#B4400E; --warn-soft:#FBE5DA; --ok:#16723F;
+  --f-display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body:"Figtree", "Segoe UI", system-ui, sans-serif;
+  --f-mono:"JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0E1612; --surface:#16211C; --sunk:#1D2A24; --ink:#E4EDE7; --muted:#9AAAA1; --line:#2A3832;
+  --leaf:#52C690; --leaf-soft:#173A2A; --sun:#F0BF4C; --sun-soft:#3A2F12; --warn:#F48A5C; --warn-soft:#3D2016; --ok:#5AD48C; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0E1612; --surface:#16211C; --sunk:#1D2A24; --ink:#E4EDE7; --muted:#9AAAA1; --line:#2A3832;
+  --leaf:#52C690; --leaf-soft:#173A2A; --sun:#F0BF4C; --sun-soft:#3A2F12; --warn:#F48A5C; --warn-soft:#3D2016; --ok:#5AD48C; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:20px 48px}
+.wrap{max-width:1080px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+h1,h2,h3{font-family:var(--f-display);margin:0;text-wrap:balance;letter-spacing:-.01em}
+h1{font-size:1.6rem} h2{font-size:1.15rem} h3{font-size:1rem}
+p{margin:0}
+.muted{color:var(--muted)}
+.small{font-size:.85rem}
+.eyebrow{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+.num{font-variant-numeric:tabular-nums}
+header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px}
+.brand{display:flex;align-items:center;gap:10px}
+.brand svg{flex:none}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:.75rem;font-weight:600;padding:3px 10px;border-radius:999px;background:var(--sunk);color:var(--muted)}
+.chip.leaf{background:var(--leaf-soft);color:var(--leaf)}
+.chip.sun{background:var(--sun-soft);color:var(--sun)}
+.chip.warn{background:var(--warn-soft);color:var(--warn)}
+.tabs{display:flex;background:var(--sunk);border-radius:12px;padding:4px;gap:4px;flex-wrap:wrap}
+.tabs button{border:0;background:transparent;color:var(--muted);font:600 .9rem var(--f-body);padding:8px 14px;border-radius:9px;cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.scene{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;font-size:.85rem;color:var(--muted);border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding-block:10px}
+.scene strong{color:var(--ink)}
+.grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.panel.hero{border-color:var(--leaf)}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.stack{display:flex;flex-direction:column;gap:10px}
+.big{font-family:var(--f-display);font-size:2.6rem;line-height:1;font-weight:700}
+button.btn{border:0;border-radius:10px;padding:10px 16px;font:600 .9rem var(--f-body);cursor:pointer;background:var(--leaf);color:var(--surface)}
+button.btn.ghost{background:transparent;color:var(--leaf);border:1px solid var(--leaf)}
+button.btn.quiet{background:var(--sunk);color:var(--ink)}
+button.btn:disabled{opacity:.45;cursor:not-allowed}
+button:focus-visible,select:focus-visible,input:focus-visible,label.toggle:focus-within{outline:2px solid var(--leaf);outline-offset:2px}
+select,input[type=number],input[type=text]{font:500 .95rem var(--f-body);padding:8px 10px;border-radius:9px;border:1px solid var(--line);background:var(--surface);color:var(--ink);min-width:0}
+label.field{display:flex;flex-direction:column;gap:4px;font-size:.8rem;color:var(--muted);font-weight:600}
+label.toggle{display:inline-flex;align-items:center;gap:8px;font-size:.85rem;cursor:pointer;color:var(--ink)}
+.drivers{display:flex;flex-direction:column;gap:6px;font-size:.85rem}
+.drv{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}
+.bar{height:6px;border-radius:3px;background:var(--sunk);position:relative;overflow:hidden}
+.bar i{position:absolute;top:0;bottom:0;border-radius:3px}
+.list{display:flex;flex-direction:column}
+.item{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding-block:12px;border-top:1px solid var(--line)}
+.item:first-child{border-top:0}
+.item .t{font-weight:600}
+.code{font-family:var(--f-mono);font-size:1.4rem;letter-spacing:.08em;color:var(--leaf)}
+.kpis{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:2px}
+.kpi b{font-family:var(--f-display);font-size:1.7rem;font-variant-numeric:tabular-nums}
+.photos{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.photos button{border:2px solid transparent;border-radius:10px;padding:0;background:none;cursor:pointer;overflow:hidden}
+.photos button[aria-pressed="true"]{border-color:var(--leaf)}
+.photos svg,.photos img{display:block;width:100%;height:auto}
+.result{border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:4px;font-size:.9rem}
+.result.ok{background:var(--leaf-soft)} .result.bad{background:var(--warn-soft)}
+.viewer{position:relative;border-radius:12px;overflow:hidden;background:var(--sunk)}
+.viewer svg,.viewer img{display:block;width:100%;height:auto}
+.chart{overflow-x:auto}
+.chart svg{display:block;width:100%;min-width:420px;height:auto}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:.8rem;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom, 0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-weight:600;font-size:.9rem;max-width:calc(100% - 32px)}
+.note{font-size:.8rem;color:var(--muted);border-left:3px solid var(--line);padding-left:10px}
+@media (prefers-reduced-motion:no-preference){.toast{animation:up .25s ease-out}@keyframes up{from{transform:translate(-50%,8px);opacity:0}}}
+.wa{background:var(--leaf-soft);border-radius:12px 12px 12px 3px;padding:10px 12px;font-size:.88rem;display:flex;flex-direction:column;gap:2px}
+.wa small{color:var(--muted);font-size:.72rem}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <svg width="36" height="36" viewBox="0 0 36 36" aria-hidden="true"><circle cx="18" cy="18" r="16" fill="none" stroke="var(--leaf)" stroke-width="3" stroke-dasharray="80 21" transform="rotate(-60 18 18)"/><path d="M27 6l3 6-6.5.6z" fill="var(--leaf)"/><path d="M18 10c5 2 6 8 0 14c-6-6-5-12 0-14z" fill="var(--sun)"/></svg>
+      <div><h1>Elmina Loop</h1><p class="small muted">Surplus food to residents, the rest to compost</p></div>
+    </div>
+    <div class="tabs" role="tablist" aria-label="Choose a view">
+      <button role="tab" id="tab-tenant" data-view="tenant">Tenant</button>
+      <button role="tab" id="tab-resident" data-view="resident">Resident</button>
+      <button role="tab" id="tab-manager" data-view="manager">Manager</button>
+    </div>
+  </header>
+  <div class="scene">
+    <span class="chip sun">Demo data</span>
+    <span>Tonight: <strong>Fri 23 Oct 2026</strong>, Elmina Lakeside Mall</span>
+    <span>10 example F&amp;B outlets, 8 weeks of simulated sales history</span>
+    <span class="chip">One device: switch tabs to play each role</span>
+    <button class="btn quiet" id="reset" style="margin-left:auto;padding:6px 12px">Reset demo</button>
+  </div>
+  <main id="app"></main>
+</div>
+<div id="toast" class="toast" hidden></div>
+
+<script>
+// ---------- Simulated mall ----------
+function rng(seed){return function(){seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const R=rng(2310);
+const OUTLETS=[
+ {id:'roti',name:'Roti Pagi Bakery',type:'Bakery',unit:'pastries',base:22,perBag:5,price:8,kg:.09},
+ {id:'kopi',name:'Kopi Tasik Café',type:'Café',unit:'cakes & sandwiches',base:12,perBag:3,price:10,kg:.15},
+ {id:'campur',name:'Nasi Campur Mak Ngah',type:'Rice stall',unit:'portions',base:14,perBag:2,price:7,kg:.35},
+ {id:'dimsum',name:'Dim Sum Lakeside',type:'Restaurant',unit:'baskets',base:16,perBag:4,price:12,kg:.12},
+ {id:'sago',name:'Sweet Sago Desserts',type:'Dessert kiosk',unit:'cups',base:10,perBag:4,price:6,kg:.2},
+ {id:'bowl',name:'Green Bowl Salads',type:'Salad bar',unit:'bowls',base:8,perBag:2,price:9,kg:.3},
+ {id:'pizza',name:'Pizza Elmina',type:'Restaurant',unit:'slices',base:18,perBag:4,price:10,kg:.12},
+ {id:'mee',name:'Mee Rebus Corner',type:'Noodle stall',unit:'portions',base:9,perBag:2,price:6,kg:.4},
+ {id:'ayam',name:'Ayam Golek Kitchen',type:'Restaurant',unit:'portions',base:11,perBag:2,price:9,kg:.35},
+ {id:'croissant',name:'Croissant & Co',type:'Bakery',unit:'pastries',base:15,perBag:5,price:9,kg:.08},
+];
+const DAYS=56, START=Date.UTC(2026,7,28); // Fri 28 Aug to Thu 22 Oct
+const days=[...Array(DAYS)].map((_,i)=>{const d=new Date(START+i*864e5);const dow=d.getUTCDay();return{d,dow,mon:dow===1?1:0,wk:(dow===0||dow===6)?1:0,rain:R()<.4?1:0,ev:R()<.1?1:0}});
+OUTLETS.forEach(o=>{
+  const rs=.3+R()*.35, ws=-.1-R()*.15;
+  o.history=days.map(x=>Math.max(0,Math.round(o.base*(1+.22*x.mon+ws*x.wk+rs*x.rain-.3*x.ev)*(1+(R()-.5)*.32))));
+});
+
+// ---------- Forecast model: linear regression per outlet ----------
+const feats=x=>[1,x.mon,x.wk,x.rain,x.ev];
+function solve(A,b){const n=b.length;A=A.map((r,i)=>[...r,b[i]]);for(let c=0;c<n;c++){let p=c;for(let r=c+1;r<n;r++)if(Math.abs(A[r][c])>Math.abs(A[p][c]))p=r;[A[c],A[p]]=[A[p],A[c]];for(let r=0;r<n;r++){if(r===c)continue;const f=A[r][c]/A[c][c];for(let k=c;k<=n;k++)A[r][k]-=f*A[c][k]}}return A.map((r,i)=>r[n]/r[i])}
+function fit(rows,ys){const k=5,XtX=[...Array(k)].map(()=>Array(k).fill(0)),Xty=Array(k).fill(0);rows.forEach((x,i)=>{const f=feats(x);for(let a=0;a<k;a++){Xty[a]+=f[a]*ys[i];for(let b=0;b<k;b++)XtX[a][b]+=f[a]*f[b]}});for(let a=0;a<k;a++)XtX[a][a]+=.5;return solve(XtX,Xty)}
+const predict=(b,x)=>Math.max(0,feats(x).reduce((s,v,i)=>s+v*b[i],0));
+const TRAIN=49;
+let errM=0,errN=0,nTest=0;
+OUTLETS.forEach(o=>{
+  o.beta=fit(days.slice(0,TRAIN),o.history.slice(0,TRAIN));
+  o.test=days.slice(TRAIN).map((x,j)=>{const i=TRAIN+j;const m=predict(o.beta,x),n=o.history[i-7];errM+=Math.abs(m-o.history[i]);errN+=Math.abs(n-o.history[i]);nTest++;return{x,actual:o.history[i],model:m,naive:n}});
+  const res=days.slice(0,TRAIN).map((x,i)=>o.history[i]-predict(o.beta,x));
+  o.sd=Math.sqrt(res.reduce((s,v)=>s+v*v,0)/res.length);
+  o.beta=fit(days,o.history); // refit on all 8 weeks for tonight
+});
+const MAE_MODEL=errM/nTest, MAE_NAIVE=errN/nTest, GAIN=Math.round((1-MAE_MODEL/MAE_NAIVE)*100);
+
+// ---------- Bin photos (samples) ----------
+function binSVG(kind){
+  const scraps='<circle cx="70" cy="120" r="16" fill="#B7791F"/><circle cx="110" cy="128" r="12" fill="#6B8E23"/><ellipse cx="150" cy="118" rx="20" ry="12" fill="#D69E2E"/><circle cx="190" cy="126" r="14" fill="#8B5A2B"/><ellipse cx="95" cy="100" rx="18" ry="9" fill="#9ACD32"/><circle cx="170" cy="98" r="10" fill="#E9C46A"/><ellipse cx="225" cy="108" rx="14" ry="8" fill="#A0522D"/><circle cx="130" cy="96" r="9" fill="#C08457"/>';
+  const cup='<path d="M150 78l30 0-4 44-22 0z" fill="#F4F4F5" stroke="#9CA3AF" stroke-width="2"/><rect x="147" y="74" width="36" height="6" rx="2" fill="#E5E7EB"/>';
+  const bottle='<rect x="60" y="86" width="64" height="20" rx="9" fill="#93C5FD" opacity=".85" transform="rotate(-12 92 96)"/><rect x="118" y="86" width="12" height="9" rx="2" fill="#2563EB" transform="rotate(-12 92 96)"/>';
+  const box=(x,y,w,h,l)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="none" stroke="#EA580C" stroke-width="3" rx="3"/><rect x="${x}" y="${y-18}" width="${l.length*7.2+10}" height="18" fill="#EA580C" rx="3"/><text x="${x+5}" y="${y-5}" font-size="12" font-family="sans-serif" fill="#fff" font-weight="700">${l}</text>`;
+  let extra='',boxes='';
+  if(kind==='cup'){extra=cup;boxes=box(142,70,46,58,'plastic cup 0.91')}
+  if(kind==='bottle'){extra=bottle;boxes=box(52,72,86,42,'plastic bottle 0.88')}
+  return `<svg viewBox="0 0 300 170" role="img" aria-label="Sample organics bin photo"><rect width="300" height="170" fill="#3F4A44"/><path d="M40 40h220l-14 125H54z" fill="#256D4E"/><rect x="34" y="34" width="232" height="12" rx="4" fill="#1F5A40"/><g>${scraps}${extra}</g><g class="det">${boxes}</g></svg>`;
+}
+const SAMPLES=[{id:'clean',label:'Clean bin',bad:[]},{id:'cup',label:'With a cup',bad:['plastic cup']},{id:'bottle',label:'With a bottle',bad:['plastic bottle']}];
+
+// ---------- State ----------
+const REWARDS=[{id:'seed',name:'Herb seedling from the community garden',pts:100},{id:'kopi',name:'Free kopi at Kopi Tasik Café',pts:150},{id:'rm5',name:'RM5 voucher at any mall tenant',pts:300}];
+const SUBS=128;
+const alertMsg=(id,n,p)=>{const o=OUTLETS.find(x=>x.id===id);return{outlet:o.name,time:'5:00 pm',text:`${o.name} has ${n} rescue bags at RM${p} tonight (usual value about RM${o.price*2+o.perBag}). Pick up 9:30 to 10:00 pm. Tap to reserve.`}};
+function fresh(){return{alerts:[alertMsg('pizza',2,10),alertMsg('campur',4,7),alertMsg('kopi',3,10)],view:'tenant',outlet:'roti',rain:true,event:false,
+  listings:{kopi:{bags:3,price:10,reserved:[],collected:0},campur:{bags:4,price:7,reserved:[],collected:0},pizza:{bags:2,price:10,reserved:[],collected:0}},
+  points:120,myCodes:[],dropKg:0,redeemed:[],bins:{},sample:'cup',upload:null,showTenantCode:''}}
+const KEY='elmina-loop-demo-v1';
+function save(){try{const c={...S,upload:null,sample:S.sample||'cup'};c.bins=Object.fromEntries(Object.entries(S.bins).filter(([k,v])=>!v.upload));localStorage.setItem(KEY,JSON.stringify(c))}catch(e){}}
+function load(){try{const v=localStorage.getItem(KEY);return v?{...fresh(),...JSON.parse(v)}:null}catch(e){return null}}
+let S=load()||fresh();
+const $=s=>document.querySelector(s);
+const O=id=>OUTLETS.find(o=>o.id===id);
+function toast(t){const el=$('#toast');el.textContent=t;el.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>el.hidden=true,2600)}
+function tonight(o){const x={mon:0,wk:0,rain:S.rain?1:0,ev:S.event?1:0};const p=predict(o.beta,x);return{p,lo:Math.max(0,Math.round(p-o.sd)),hi:Math.round(p+o.sd),x}}
+
+// ---------- Views ----------
+function tenantView(){
+  const o=O(S.outlet),f=tonight(o),L=S.listings[o.id];
+  const sugg=Math.max(0,Math.floor(Math.round(f.p)/o.perBag));
+  const names=['Normal Friday','Monday','Weekend','Rain forecast','Mall event'];
+  const contrib=o.beta.map((b,i)=>({n:names[i],v:i===0?b:b*[0,f.x.mon,f.x.wk,f.x.rain,f.x.ev][i]})).filter((c,i)=>i===0||c.v!==0);
+  const maxv=Math.max(...contrib.map(c=>Math.abs(c.v)),1);
+  const bin=S.bins[o.id];
+  return `<div class="grid">
+  <section class="panel hero" aria-labelledby="fc">
+    <div class="row"><label class="field" style="flex:1">Outlet<select id="outlet">${OUTLETS.map(x=>`<option value="${x.id}" ${x.id===o.id?'selected':''}>${x.name}</option>`).join('')}</select></label></div>
+    <div class="stack">
+      <span class="eyebrow" id="fc">5:00 pm forecast for closing time</span>
+      <div class="row" style="align-items:flex-end;justify-content:flex-start"><span class="big num">${Math.round(f.p)}</span><span class="muted">${o.unit} expected left<br><span class="num">likely ${f.lo} to ${f.hi}</span></span></div>
+    </div>
+    <div class="row" style="justify-content:flex-start;gap:16px">
+      <label class="toggle"><input type="checkbox" id="rain" ${S.rain?'checked':''}> Rain forecast tonight</label>
+      <label class="toggle"><input type="checkbox" id="event" ${S.event?'checked':''}> Mall event tonight</label>
+    </div>
+    <div class="drivers" aria-label="What drives this forecast">
+      <span class="eyebrow">Why this number</span>
+      ${contrib.map(c=>`<div class="drv"><span>${c.n}</span><span class="num">${c.v>=0?'+':''}${c.v.toFixed(1)}</span><div class="bar" style="grid-column:1/-1"><i style="left:0;width:${Math.abs(c.v)/maxv*100}%;background:${c.v>=0?'var(--leaf)':'var(--warn)'}"></i></div></div>`).join('')}
+    </div>
+    <p class="note">The model learned from 8 weeks of this outlet's leftovers. Toggle the weather or an event and the forecast updates.</p>
+  </section>
+
+  <section class="panel" aria-labelledby="bg">
+    <h2 id="bg">Tonight's rescue bags</h2>
+    ${L?`<div class="stack">
+        <div class="row"><span><b class="num">${L.bags}</b> bags live at <b class="num">RM${L.price}</b></span><span class="chip leaf">${L.reserved.length} reserved, ${L.collected} collected</span></div>
+        <label class="field">Pickup code from resident<input type="text" id="pcode" placeholder="EL-0000" autocomplete="off"></label>
+        <button class="btn" id="collect">Mark collected</button>
+        ${L.reserved.length?`<p class="small muted">Codes waiting: <span style="font-family:var(--f-mono)">${L.reserved.filter(r=>!r.done).map(r=>r.code).join(', ')||'none'}</span></p>`:''}
+        <button class="btn quiet" id="unlist">Withdraw remaining bags</button>
+      </div>`
+    :`<div class="stack">
+        <p>The forecast suggests <b class="num">${sugg}</b> bags of ${o.perBag} ${o.unit}.</p>
+        <div class="row" style="justify-content:flex-start">
+          <label class="field">Bags<input type="number" id="nbags" min="0" max="30" value="${sugg}" style="width:90px"></label>
+          <label class="field">Price (RM)<input type="number" id="nprice" min="1" max="50" value="${o.price}" style="width:90px"></label>
+        </div>
+        <button class="btn" id="publish">Confirm and alert residents</button>
+        <p class="note">Alerts go out only in the last trading hour, so full-price sales are not affected.</p>
+      </div>`}
+  </section>
+
+  <section class="panel" aria-labelledby="bn">
+    <h2 id="bn">Closing: check the organics bin</h2>
+    <p class="small muted">Choose a sample photo, or upload your own.</p>
+    <div class="photos">${SAMPLES.map(s=>`<button aria-pressed="${S.sample===s.id&&!S.upload}" data-sample="${s.id}" title="${s.label}">${binSVG('clean'===s.id?'clean':s.id).replace('class="det"','class="det" style="display:none"')}</button>`).join('')}</div>
+    <div class="row" style="justify-content:flex-start"><label class="btn quiet" style="display:inline-block;border-radius:10px;padding:8px 14px;font-weight:600;cursor:pointer">Upload photo<input type="file" id="upload" accept="image/*" hidden></label><button class="btn" id="check">Check bin</button></div>
+    ${bin?`<div class="viewer">${bin.upload?`<img src="${bin.upload}" alt="Uploaded bin photo">`:binSVG(bin.sample)}</div>
+      ${bin.upload?`<div class="result"><b>Photo received</b><span class="small">In the full build the trained classifier checks uploaded photos. This demo scores the three sample photos.</span></div>`
+      :bin.bad.length?`<div class="result bad"><b>Remove before collection: ${bin.bad.join(', ')}</b><span class="small">Plastic spoils the compost. Sorting score tonight: ${bin.score}/100</span></div>`
+      :`<div class="result ok"><b>Bin is clean</b><span class="small">Ready for compost collection. Sorting score tonight: ${bin.score}/100</span></div>`}`:''}
+    <p class="note">Detection boxes on sample photos are pre-set for this demo. The production model is a small image detector fine-tuned on waste photos.</p>
+  </section>
+  </div>`;
+}
+
+function residentView(){
+  const live=Object.entries(S.listings).map(([id,l])=>({o:O(id),l,left:l.bags-l.reserved.length})).filter(x=>x.l.bags>0);
+  return `<div class="grid">
+  <section class="panel hero" aria-labelledby="near">
+    <div class="row"><h2 id="near">Rescue bags near you</h2><span class="chip">Pick up 9:30 to 10:00 pm</span></div>
+    <div class="list">${live.length?live.map(x=>`<div class="item"><div><div class="t">${x.o.name}</div><div class="small muted">${x.o.perBag} ${x.o.unit} mix · <span class="num">${x.left}</span> left · usual value about RM${x.o.price*2+x.o.perBag}</div></div>
+      <div class="row" style="gap:8px"><b class="num">RM${x.l.price}</b><button class="btn" data-reserve="${x.o.id}" ${x.left<1?'disabled':''}>${x.left<1?'Sold out':'Reserve'}</button></div></div>`).join('')
+      :'<p class="muted">No bags yet tonight. Tenants publish them after 5 pm.</p>'}</div>
+  </section>
+
+  <section class="panel" aria-labelledby="mine">
+    <h2 id="mine">My pickups</h2>
+    ${S.myCodes.length?`<div class="list">${S.myCodes.map(c=>`<div class="item"><div><div class="t">${O(c.outlet).name}</div><div class="small muted">${c.done?'Collected, +20 points':'Show this code at the counter'}</div></div><span class="code">${c.code}</span></div>`).join('')}</div>`
+      :'<p class="muted">Reserve a bag and your pickup code appears here.</p>'}
+  </section>
+
+  <section class="panel" aria-labelledby="wa">
+    <div class="row"><h2 id="wa">WhatsApp alerts</h2><span class="chip">${SUBS} residents subscribed</span></div>
+    <div class="stack">${S.alerts.slice(0,3).map(a=>`<div class="wa"><b>Elmina Loop</b><span>${a.text}</span><small>${a.time}</small></div>`).join('')}</div>
+    <p class="note">Simulated for the demo. The pilot sends these through WhatsApp after the tenant confirms the forecast.</p>
+  </section>
+
+  <section class="panel" aria-labelledby="pts">
+    <div class="row"><h2 id="pts">Loop points</h2><span class="big num" style="font-size:2rem;color:var(--sun)">${S.points}</span></div>
+    <div class="stack">
+      <span class="eyebrow">Drop off kitchen scraps at the mall compost point</span>
+      <div class="row" style="justify-content:flex-start"><label class="field">Weight (kg)<input type="number" id="dkg" min="0.5" max="10" step="0.5" value="1.5" style="width:100px"></label><button class="btn ghost" id="drop" style="align-self:flex-end">Log drop-off</button></div>
+      <p class="small muted">10 points per kg. Scraps go to the City of Elmina community gardens.</p>
+    </div>
+    <div class="list">${REWARDS.map(r=>`<div class="item"><div><div class="t">${r.name}</div><div class="small muted num">${r.pts} points</div></div><button class="btn quiet" data-redeem="${r.id}" ${S.points<r.pts?'disabled':''}>${S.redeemed.includes(r.id)?'Redeem again':'Redeem'}</button></div>`).join('')}</div>
+  </section>
+  </div>`;
+}
+
+function managerView(){
+  // simulated 8-week pilot from the outlet history
+  const resc=[0,0,.04,.06,.08,.1,.11,.12], comp=[0,0,0,0,.08,.12,.16,.2];
+  const weeks=[...Array(8)].map((_,w)=>{let kg=0,rev=0,sav=0;OUTLETS.forEach(o=>{let k=0;for(let d=w*7;d<w*7+7;d++)k+=o.history[d]*o.kg;kg+=k;const bags=k*resc[w]/(o.perBag*o.kg);rev+=bags*o.price;sav+=bags*(o.price*2+o.perBag-o.price)});const r=kg*resc[w],c=(kg-r)*comp[w];return{kg,r,c,l:kg-r-c,rev,sav}});
+  // tonight live
+  let liveBags=0,liveRev=0,liveSav=0;Object.entries(S.listings).forEach(([id,l])=>{const q=O(id);liveBags+=l.collected*q.perBag*q.kg;liveRev+=l.collected*l.price;liveSav+=l.collected*(q.price*2+q.perBag-l.price)});
+  const liveDrop=S.dropKg;
+  const tot={r:weeks.reduce((s,w)=>s+w.r,0)+liveBags,c:weeks.reduce((s,w)=>s+w.c,0)+liveDrop};
+  const dc=S.dc??0.3, rev=weeks.reduce((s,w)=>s+w.rev,0)+liveRev, sav=weeks.reduce((s,w)=>s+w.sav,0)+liveSav, disp=(tot.r+tot.c)*dc;
+  const base=weeks[0].kg, last=weeks[7].l;
+  const checks=Object.values(S.bins).filter(b=>!b.upload);const contam=checks.length?Math.round(checks.filter(b=>b.bad.length).length/checks.length*100):null;
+  const ef=S.ef??2.0;
+  const redeemedPts=S.redeemed.length?S.redeemed.length:0;
+  // stacked bars
+  const W=640,H=230,pad={l:44,r:12,t:12,b:30},bw=(W-pad.l-pad.r)/8*.62,max=Math.ceil(Math.max(...weeks.map(w=>w.kg))/50)*50;
+  const y=v=>pad.t+(H-pad.t-pad.b)*(1-v/max),x=i=>pad.l+(W-pad.l-pad.r)/8*(i+.19);
+  const ticks=[0,max/2,max];
+  const bars=weeks.map((w,i)=>{let acc=0;return [['r','var(--leaf)'],['c','var(--sun)'],['l','var(--muted)']].map(([k,col])=>{const y0=y(acc+w[k]),h=y(acc)-y(acc+w[k]);acc+=w[k];return h>0?`<rect x="${x(i)}" y="${y0}" width="${bw}" height="${h}" fill="${col}" ${k==='l'?'opacity=".35"':''}><title>Week ${i+1}: ${w[k].toFixed(0)} kg</title></rect>`:''}).join('')+`<text x="${x(i)+bw/2}" y="${H-10}" text-anchor="middle" font-size="12" fill="var(--muted)">Wk ${i+1}</text>`}).join('');
+  const stacked=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Weekly food surplus by destination">${ticks.map(t=>`<line x1="${pad.l}" x2="${W-pad.r}" y1="${y(t)}" y2="${y(t)}" stroke="var(--line)"/><text x="${pad.l-8}" y="${y(t)+4}" text-anchor="end" font-size="11" fill="var(--muted)">${t}</text>`).join('')}${bars}<text x="4" y="${pad.t+8}" font-size="11" fill="var(--muted)">kg</text></svg>`;
+  // accuracy chart
+  const o=O(S.accOutlet||'roti'),T=o.test;const mx=Math.max(...T.flatMap(t=>[t.actual,t.model,t.naive]))*1.15;
+  const W2=640,H2=210,p2={l:36,r:12,t:12,b:30},x2=i=>p2.l+(W2-p2.l-p2.r)*i/6,y2=v=>p2.t+(H2-p2.t-p2.b)*(1-v/mx);
+  const line=(k,col,dash)=>`<polyline fill="none" stroke="${col}" stroke-width="2.5" ${dash?'stroke-dasharray="5 5"':''} points="${T.map((t,i)=>`${x2(i)},${y2(t[k])}`).join(' ')}"/>`+T.map((t,i)=>`<circle cx="${x2(i)}" cy="${y2(t[k])}" r="3.5" fill="${col}"><title>${t[k].toFixed(1)}</title></circle>`).join('');
+  const dn=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const acc=`<svg viewBox="0 0 ${W2} ${H2}" role="img" aria-label="Forecast versus actual leftovers, test week">${[0,Math.round(mx/2),Math.round(mx)].map(t=>`<line x1="${p2.l}" x2="${W2-p2.r}" y1="${y2(t)}" y2="${y2(t)}" stroke="var(--line)"/><text x="${p2.l-8}" y="${y2(t)+4}" text-anchor="end" font-size="11" fill="var(--muted)">${t}</text>`).join('')}${T.map((t,i)=>`<text x="${x2(i)}" y="${H2-10}" text-anchor="middle" font-size="12" fill="var(--muted)">${dn[t.x.d.getUTCDay()]} ${t.x.d.getUTCDate()}${t.x.rain?' ☂':''}</text>`).join('')}${line('naive','var(--muted)',true)}${line('model','var(--leaf)')}${line('actual','var(--sun)')}</svg>`;
+  return `<div class="stack" style="gap:16px">
+  <div class="kpis">
+    <div class="kpi"><span class="eyebrow">Food rescued</span><b class="num">${tot.r.toFixed(0)} kg</b><span class="small muted">sold as rescue bags</span></div>
+    <div class="kpi"><span class="eyebrow">Composted</span><b class="num">${tot.c.toFixed(0)} kg</b><span class="small muted">to township gardens</span></div>
+    <div class="kpi"><span class="eyebrow">Landfill, week 8</span><b class="num">−${Math.round((1-last/base)*100)}%</b><span class="small muted">vs week 1 baseline (target: up to 30%)</span></div>
+    <div class="kpi"><span class="eyebrow">CO2e avoided</span><b class="num">${((tot.r+tot.c)*ef/1000).toFixed(2)} t</b><span class="small muted">at ${ef} kg CO2e per kg</span></div>
+    <div class="kpi"><span class="eyebrow">Bin contamination</span><b class="num">${contam===null?'–':contam+'%'}</b><span class="small muted">${checks.length} checks tonight</span></div>
+    <div class="kpi"><span class="eyebrow">Tenant revenue recovered</span><b class="num">RM${Math.round(rev).toLocaleString()}</b><span class="small muted">from rescue bag sales</span></div>
+    <div class="kpi"><span class="eyebrow">Disposal cost avoided</span><b class="num">RM${Math.round(disp).toLocaleString()}</b><span class="small muted">at RM${dc.toFixed(2)} per kg</span></div>
+    <div class="kpi"><span class="eyebrow">Resident savings</span><b class="num">RM${Math.round(sav).toLocaleString()}</b><span class="small muted">vs usual bag value</span></div>
+    <div class="kpi"><span class="eyebrow">Points redeemed</span><b class="num">${redeemedPts}</b><span class="small muted">rewards at mall tenants</span></div>
+  </div>
+  <div class="grid">
+  <section class="panel" aria-labelledby="wk"><div class="row"><h2 id="wk">Where the surplus went</h2><span class="chip sun">Simulated 8-week pilot</span></div>
+    <div class="chart">${stacked}</div>
+    <div class="legend"><span><i style="background:var(--leaf)"></i>Rescued</span><span><i style="background:var(--sun)"></i>Composted</span><span><i style="background:var(--muted);opacity:.35"></i>Landfill</span></div>
+    <p class="note">Follows the pilot plan: weeks 1 to 2 baseline, rescue bags from week 3, composting from week 5. Tonight's collections and drop-offs are added to the totals live.</p>
+  </section>
+  <section class="panel" aria-labelledby="ac"><div class="row"><h2 id="ac">Is the AI forecast any good?</h2><span class="chip leaf num">${GAIN}% less error</span></div>
+    <p class="small">Tested on a held-out week. Average error: model <b class="num">${MAE_MODEL.toFixed(1)}</b> items, "same as last week" rule <b class="num">${MAE_NAIVE.toFixed(1)}</b> items, across all 10 outlets.</p>
+    <label class="field">Outlet<select id="accOutlet">${OUTLETS.map(x=>`<option value="${x.id}" ${x.id===o.id?'selected':''}>${x.name}</option>`).join('')}</select></label>
+    <div class="chart">${acc}</div>
+    <div class="legend"><span><i style="background:var(--sun)"></i>Actual leftovers</span><span><i style="background:var(--leaf)"></i>AI forecast</span><span><i style="background:var(--muted)"></i>Last-week rule (dashed)</span><span>☂ rainy day</span></div>
+  </section>
+  </div>
+  <section class="panel"><div class="row"><label class="field">Emission factor (kg CO2e per kg food kept out of landfill)<input type="number" id="ef" min="0.1" max="10" step="0.1" value="${ef}" style="width:120px"></label><label class="field">Disposal cost (RM per kg of waste collected)<input type="number" id="dc" min="0.05" max="5" step="0.05" value="${dc}" style="width:120px"></label><p class="note" style="flex:1;min-width:220px">Both are adjustable assumptions, not measured data. Replace them with figures from a source you can cite before submitting.</p></div></section>
+  </div>`;
+}
+
+// ---------- Render & events ----------
+function render(){
+  save();
+  document.querySelectorAll('.tabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.view===S.view));
+  $('#app').innerHTML=S.view==='tenant'?tenantView():S.view==='resident'?residentView():managerView();
+}
+document.querySelector('.tabs').addEventListener('click',e=>{const b=e.target.closest('button');if(b){S.view=b.dataset.view;render()}});
+$('#reset').addEventListener('click',()=>{const v=S.view;S=fresh();S.view=v;render();toast('Demo reset')});
+const app=$('#app');
+app.addEventListener('change',e=>{
+  const t=e.target;
+  if(t.id==='outlet'){S.outlet=t.value;render()}
+  if(t.id==='rain'){S.rain=t.checked;render()}
+  if(t.id==='event'){S.event=t.checked;render()}
+  if(t.id==='accOutlet'){S.accOutlet=t.value;render()}
+  if(t.id==='dc'){const v=parseFloat(t.value);if(v>0){S.dc=v;render()}}
+  if(t.id==='ef'){const v=parseFloat(t.value);if(v>0){S.ef=v;render()}}
+  if(t.id==='upload'&&t.files[0]){S.upload=URL.createObjectURL(t.files[0]);S.sample=null;render();toast('Photo added. Press Check bin.')}
+});
+app.addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  const o=O(S.outlet);
+  if(b.id==='publish'){const n=Math.max(0,parseInt($('#nbags').value)||0),p=Math.max(1,parseInt($('#nprice').value)||o.price);if(!n){toast('Set at least one bag');return}S.listings[o.id]={bags:n,price:p,reserved:[],collected:0};S.alerts.unshift(alertMsg(o.id,n,p));render();toast(`${n} bags live. WhatsApp alert sent to ${SUBS} residents.`)}
+  if(b.id==='unlist'){const L=S.listings[o.id];L.bags=L.reserved.length;if(!L.bags)delete S.listings[o.id];render();toast('Remaining bags withdrawn')}
+  if(b.id==='collect'){const code=$('#pcode').value.trim().toUpperCase();const L=S.listings[o.id];const r=L.reserved.find(r=>r.code===code&&!r.done);if(!r){toast('Code not found for this outlet. Check the code on the resident’s screen.');return}r.done=true;L.collected++;const mine=S.myCodes.find(c=>c.code===code);if(mine){mine.done=true;S.points+=20}render();toast('Collected. Resident earned 20 points.')}
+  if(b.dataset.sample){S.sample=b.dataset.sample;S.upload=null;render()}
+  if(b.id==='check'){if(S.upload){S.bins[o.id]={upload:S.upload,bad:[]}}else{const s=SAMPLES.find(x=>x.id===S.sample)||SAMPLES[0];S.bins[o.id]={sample:s.id,bad:s.bad,score:s.bad.length?62:96}}render()}
+  if(b.dataset.reserve){const id=b.dataset.reserve,L=S.listings[id];if(L.bags-L.reserved.length<1)return;const code='EL-'+String(1000+Math.floor(Math.random()*9000));L.reserved.push({code,done:false});S.myCodes.unshift({outlet:id,code,done:false});render();toast(`Reserved at ${O(id).name}. Code ${code}`)}
+  if(b.id==='drop'){const kg=Math.max(0,parseFloat($('#dkg').value)||0);if(!kg)return;S.dropKg+=kg;S.points+=Math.round(kg*10);render();toast(`${kg} kg logged. +${Math.round(kg*10)} points`)}
+  if(b.dataset.redeem){const r=REWARDS.find(x=>x.id===b.dataset.redeem);if(S.points<r.pts)return;S.points-=r.pts;S.redeemed.push(r.id);render();toast(`Redeemed: ${r.name}`)}
+});
+render();
+</script>
+
+</body></html>
